@@ -95,9 +95,9 @@ public class WebProxy extends ServerProxy {
 
                 sb.append("\r\n");
             }
-            if(addContentType) {
-                sb.append("Content-Type: application/octet-stream\r\n");
-            }
+            //if(addContentType) {
+            //    sb.append("Content-Type: application/octet-stream\r\n");
+            //}
             sb.append("\r\n");
 
             return sb.toString();
