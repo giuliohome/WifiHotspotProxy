@@ -105,10 +105,24 @@ public class WebProxy extends ServerProxy {
 
         @Override
         public void run() {
+
+            // Open new connection to destination and add existing headers
+            if  (path.startsWith("http://")) {
+                path = path.replace("http://","https://");
+            } else {
+                path = "https://" + path;
+            }
+            HttpURLConnection connection = null;
             try {
-                // Open new connection to destination and add existing headers
                 URL url = new URL(path);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection = null;
+                connection = (HttpURLConnection) url.openConnection();
+            } catch (IOException e) {
+                Log.e(TAG, e.getMessage());
+                Log.e(TAG, "Exception thrown from web proxy task", e);
+                return;
+            }
+            try {
                 for(Map.Entry<String, String> header: requestHeaders.entrySet()) {
                     if(!REMOVE_REQUEST_HEADERS.contains(header.getKey()) && !("Content-Length".equals(header.getKey()) && "0".equals(header.getValue()))  ) {
                         connection.setRequestProperty(header.getKey(), header.getValue());
@@ -125,51 +139,46 @@ public class WebProxy extends ServerProxy {
                         sslConnection.setHostnameVerifier(hostnameVerifier);
                     }
                 }
-
-                if(connection.getResponseCode() == HttpURLConnection.HTTP_OK || connection.getResponseCode() == HttpURLConnection.HTTP_PARTIAL) {
+                int respCode = connection.getResponseCode();
+                Log.e(TAG, "response code: " + String.valueOf(respCode) + " @ " + path);
+                //if(respCode == HttpURLConnection.HTTP_OK || respCode == HttpURLConnection.HTTP_PARTIAL
+                //|| respCode == 301) {
                     responseHeaders = getHeaders(connection.getHeaderFields());
 
                     OutputStream output = null;
                     InputStream input = null;
-                    try {
-                        output = new BufferedOutputStream(client.getOutputStream(), 64*1024);
-                        output.write(getHeaderString(connection.getResponseCode(), responseHeaders).getBytes());
+
+                    output = new BufferedOutputStream(client.getOutputStream(), 64*1024);
+                    output.write(getHeaderString(respCode, responseHeaders).getBytes());
 
 
-                        input = connection.getInputStream();
-                        byte[] buffer = new byte[1024 * 32];
-                        int count = 0, n= 0;
-                        while (-1 != (n = input.read(buffer))) {
+                    input = connection.getInputStream();
+                    byte[] buffer = new byte[1024 * 32];
+                    int count = 0, n= 0;
+                    while (-1 != (n = input.read(buffer))) {
+                        //String finalString = new String(buffer);
+                        //Log.e(TAG, "path output: " + finalString);
+                        if (n > 0) {
                             output.write(buffer, 0, n);
-                            count += n;
+                            output.flush();
                         }
-                        output.flush();
-                    } finally {
-                        try {
-                            if (output != null) {
-                                output.close();
-                            }
-                        } catch(Exception e) {
-                            Log.w(TAG, "Error closing output stream");
-                        }
-
-                        try {
-                            if(input != null) {
-                                input.close();
-                            }
-                        } catch(Exception e) {
-                            Log.w(TAG, "Error closing input stream");
-                        }
+                        count += n;
                     }
-                } else {
-                    connection.disconnect();
-                    throw new IOException(connection.getResponseMessage());
-                }
-            } catch (IOException e) {
+                    output.flush();
+                    output.close();
+                //} else {
+                //    Log.e(TAG, "response code: " + String.valueOf(respCode) + " @ " + path);
+                //}
+            }
+            catch (IOException e) {
+                Log.e(TAG, e.getMessage());
                 Log.e(TAG, "Failed to get data from url: " + path, e);
             } catch(Exception e) {
+                Log.e(TAG, e.getMessage());
                 Log.e(TAG, "Exception thrown from web proxy task", e);
             }
         }
+
+
     }
 }

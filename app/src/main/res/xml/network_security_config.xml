@@ -6,6 +6,6 @@
         <domain includeSubdomains="true">192.168.43.163</domain>
         <domain includeSubdomains="true">192.168.43.144</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
-        <domain includeSubdomains="true">www.repubblica.it</domain>
+        <domain includeSubdomains="true">github.com</domain>
     </domain-config>
 </network-security-config>
